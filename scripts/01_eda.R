@@ -230,25 +230,44 @@ pacf(outcome_series, lag.max = 14, na.action = na.pass,
      main = "Partial Autocorrelation of Daily Avoidable Deaths")
 
 # ============================================================
-# STEP 9: FEATURE OUTCOME AUOCORRELATION
+# STEP 9: FEATURE SELECTION (lag-based, leakage-safe)
+#
+# Two improvements over naive same-day Spearman:
+#   1. Correlations computed on pre-cutoff data only (no future leakage)
+#   2. Each feature correlated against future outcome at horizons h=3:10
+#      (the actual prediction targets), taking the max absolute correlation
+#      This captures features that predict the future, not just same-day
 # ============================================================
-# Calculate correlation of each feature with the outcome
-# Use development period only
-dev_period <- modeling_data_clean %>%
-  filter(date <= as.Date("2025-09-30")) %>%
+
+selection_cutoff <- as.Date("2024-12-31")
+
+selection_data <- modeling_data_clean %>%
+  filter(date <= selection_cutoff) %>%
   arrange(date)
 
-outcome_vec <- dev_period %>% pull(.data[[outcome_cols]])
+outcome_vec <- selection_data %>% pull(.data[[outcome_cols]])
 
-# Correlate all numeric features with outcome
-feature_cols <- names(dev_period)[
-  !names(dev_period) %in% c("date", outcome_cols)
+feature_cols <- names(selection_data)[
+  !names(selection_data) %in% c("date", outcome_cols)
 ]
 
+# For each feature, compute max absolute Spearman correlation
+# against outcome at horizons 3 through 10
+# lead(outcome, h) = outcome h days in the future
 cor_with_outcome <- map_dbl(feature_cols, function(col) {
-  cor(dev_period[[col]], outcome_vec,
-      use = "pairwise.complete.obs",
-      method = "spearman")  # Spearman handles skewed data better
+
+  feature_vec <- selection_data[[col]]
+
+  # Correlate feature at time t against outcome at t+h, for h = 3:10
+  cors_across_horizons <- map_dbl(3:10, function(h) {
+    outcome_future <- lead(outcome_vec, h)
+    cor(feature_vec, outcome_future,
+        use    = "pairwise.complete.obs",
+        method = "spearman")
+  })
+
+  # Take the maximum absolute correlation across all horizons
+  max(abs(cors_across_horizons), na.rm = TRUE)
 })
 
 cor_summary <- data.frame(
@@ -257,27 +276,31 @@ cor_summary <- data.frame(
 ) %>%
   arrange(desc(abs(correlation)))
 
-# Top 20 most correlated features
+# Top 20 by max absolute horizon correlation
 head(cor_summary, 20)
 
 # Plot top 20
 cor_summary %>%
   slice_head(n = 20) %>%
-  mutate(feature = str_trunc(feature, 50)) %>%  # truncate long names
-  ggplot(aes(x = reorder(feature, abs(correlation)),
-             y = correlation,
-             fill = correlation > 0)) +
-  geom_col() +
+  mutate(feature = str_trunc(feature, 50)) %>%
+  ggplot(aes(x = reorder(feature, correlation), y = correlation)) +
+  geom_col(fill = "steelblue") +
   coord_flip() +
-  scale_fill_manual(values = c("tomato", "steelblue"),
-                    labels = c("Negative", "Positive"),
-                    name   = "Direction") +
   labs(
-    title = "Top 20 Features Correlated with Avoidable Deaths",
-    x     = NULL,
-    y     = "Spearman correlation"
+    title    = "Top 20 Features by Max Horizon Correlation (pre-2025 data)",
+    subtitle = "Max absolute Spearman correlation against outcome at h=3:10",
+    x        = NULL,
+    y        = "Max |Spearman r| across horizons 3-10"
   ) +
   theme_minimal()
+
+# Save top 20 as plain character vector
+top20_vars <- cor_summary %>%
+  slice_head(n = 20) %>%
+  pull(feature)
+
+saveRDS(top20_vars, "data/top20_vars.rds")
+fwrite(cor_summary, "correlation_summary")
 
 # ============================================================
 # STEP 10: PLOT FEATURES AGANST OUTCOME OVER TIME
@@ -288,7 +311,7 @@ top5_features <- cor_summary %>%
   pull(feature)
 
 # Plot each against outcome
-dev_period %>%
+selection_data %>%
   select(date, all_of(outcome_cols), all_of(top5_features)) %>%
   pivot_longer(-date, names_to = "variable", values_to = "value") %>%
   mutate(is_outcome = variable == outcome_cols) %>%
@@ -304,6 +327,7 @@ dev_period %>%
   theme_minimal()
 
 # ============================================================
-# STEP 8: SAVE
+# STEP 11: SAVE
 # ============================================================
 saveRDS(modeling_data_clean, "data/modeling_data_clean.rds")
+saveRDS(top20_vars, "data/top20_vars.rds")
