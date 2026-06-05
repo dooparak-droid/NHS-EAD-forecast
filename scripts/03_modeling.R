@@ -13,6 +13,13 @@
 #   4. Main models (Random Forest, XGBoost)
 #   5. Results comparison
 #
+# CHANGES FROM ORIGINAL:
+#   - RF: mtry set to floor(p/3) based on hyperparameter (HPT) tuning results
+#   - XGBoost: max_depth=3, eta=0.1, subsample=0.7, colsample_bytree=0.7
+#     based on HPT tuning results; early stopping via inner holdout
+#   - Added all-NA column guard in Section 2
+#   - Fixed duplicate RF prediction line
+#
 # DEPENDENCIES (must be run first):
 #   02_feature_eng.R — produces data/df_feat_raw.rds, data/df_folds.rds,
 #                      data/core_predictors.rds
@@ -111,6 +118,17 @@ feat_cols <- names(df_feat_raw)[
   sapply(df_feat_raw, is.numeric) & !names(df_feat_raw) %in% exclude_cols
 ]
 
+# Guard: drop any columns that are entirely NA across all rows
+all_na_cols <- feat_cols[
+  sapply(df_feat_raw[feat_cols], function(x) all(is.na(x)))
+]
+
+if (length(all_na_cols) > 0) {
+  message("Dropping all-NA columns: ",
+          paste(all_na_cols, collapse = ", "))
+  feat_cols <- base::setdiff(feat_cols, all_na_cols)
+}
+
 message("Feature columns available to models: ", length(feat_cols))
 
 # =============================================================================
@@ -205,7 +223,7 @@ for (f in seq_along(df_folds)) {
   message("fold class before tibble: ", class(fold), " | fold_number: ", fold$fold_number)
 
   baseline_fold_results[[f]] <- tibble::tibble(
-    fold_number              = fold$fold_number,
+    fold_number       = fold$fold_number,
     train_end         = as.character(fold$train_end_date),
     val_start         = as.character(fold$val_start_date),
     naive_mse_1_5     = mse_block(naive_preds, actuals, 1:5),
@@ -267,6 +285,11 @@ saveRDS(
 # One model per horizon (direct forecasting) on each CV fold.
 # Feature columns: feat_cols defined in Section 2.
 # Models from the final fold are stored for submission use.
+#
+# Hyperparameters are fixed to the best values from HPT tuning:
+#   RF:     num.trees=500, mtry=floor(p/3), min.node.size=5
+#   XGBoost: max_depth=3, eta=0.1, subsample=0.7, colsample_bytree=0.7,
+#            min_child_weight=5, with early stopping via inner holdout
 # =============================================================================
 
 model_fold_results <- vector("list", length(df_folds))
@@ -274,21 +297,45 @@ final_rf_models    <- vector("list", 10)   # one per horizon, from last fold
 final_xgb_models   <- vector("list", 10)
 final_medians      <- NULL
 
+# RF tuned hyperparameters
+rf_mtry          <- floor(length(feat_cols) / 3)
+rf_num_trees     <- 500
+rf_min_node_size <- 5
+
+# XGBoost tuned hyperparameters
+xgb_params <- list(
+  objective        = "reg:squarederror",
+  max_depth        = 3,
+  eta              = 0.1,
+  subsample        = 0.7,
+  colsample_bytree = 0.7,
+  min_child_weight = 5
+)
+
 message("\n=== Running Random Forest and XGBoost ===")
+message("RF params:  num.trees=", rf_num_trees,
+        ", mtry=", rf_mtry,
+        ", min.node.size=", rf_min_node_size)
+message("XGB params: max_depth=", xgb_params$max_depth,
+        ", eta=", xgb_params$eta,
+        ", subsample=", xgb_params$subsample,
+        ", colsample_bytree=", xgb_params$colsample_bytree,
+        ", min_child_weight=", xgb_params$min_child_weight)
 
 for (f in seq_along(df_folds)) {
 
   fold <- df_folds[[f]]
   message("\n-- Model fold ", fold$fold_number, " --")
 
-  # Impute this fold (shares the same imputed slices as baselines above
-  # if run sequentially; called again here for modularity)
+  # Impute this fold
   imputed  <- impute_fold(df_feat_raw, fold, feat_cols)
   df_train <- imputed$train
   df_val   <- imputed$val
 
   # Store medians from final fold for submission
   if (f == length(df_folds)) final_medians <- imputed$medians
+
+  stopifnot(all(sapply(df_train[feat_cols], is.numeric)))
 
   # Feature matrices
   X_train <- as.matrix(df_train[feat_cols])
@@ -316,38 +363,61 @@ for (f in seq_along(df_folds)) {
     rf_mod <- ranger::ranger(
       x             = X_train_h,
       y             = y_train,
-      num.trees     = 500,
-      min.node.size = 5,
+      num.trees     = rf_num_trees,
+      mtry          = rf_mtry,
+      min.node.size = rf_min_node_size,
       importance    = "impurity",
       seed          = 42
     )
-
-    rf_preds[, h] <- predict(rf_mod, data = X_val)$predictions
 
     rf_preds[, h] <- predict(rf_mod, data = as.data.frame(X_val))$predictions
 
     # Store model from final fold
     if (f == length(df_folds)) final_rf_models[[h]] <- rf_mod
 
-    # ---- XGBoost -------------------------------------------------------------
-    dtrain <- xgboost::xgb.DMatrix(data = X_train_h, label = y_train)
-    dval   <- xgboost::xgb.DMatrix(data = X_val)
+    # ---- XGBoost with inner holdout early stopping ---------------------------
+    # Split training data 80/20 for early stopping only (not tuning —
+    # hyperparameters are fixed). The inner holdout tells xgb.train when
+    # to stop adding trees.
+    n_inner     <- nrow(X_train_h)
+    inner_cut   <- floor(0.8 * n_inner)
+    X_inner_tr  <- X_train_h[1:inner_cut, , drop = FALSE]
+    y_inner_tr  <- y_train[1:inner_cut]
+    X_inner_val <- X_train_h[(inner_cut + 1):n_inner, , drop = FALSE]
+    y_inner_val <- y_train[(inner_cut + 1):n_inner]
+
+    dtrain_inner <- xgboost::xgb.DMatrix(data = X_inner_tr,  label = y_inner_tr)
+    dval_inner   <- xgboost::xgb.DMatrix(data = X_inner_val, label = y_inner_val)
+
+    # Find optimal nrounds via early stopping on inner holdout
+    xgb_es <- xgboost::xgb.train(
+      params                = xgb_params,
+      data                  = dtrain_inner,
+      nrounds               = 1000,
+      watchlist             = list(val = dval_inner),
+      early_stopping_rounds = 30,
+      verbose               = 0
+    )
+
+    best_nrounds <- if (!is.null(xgb_es$best_iteration) &&
+                        !is.na(xgb_es$best_iteration)) {
+      xgb_es$best_iteration
+    } else {
+      300  # safe fallback
+    }
+
+    # Refit on full training slice with optimal nrounds
+    dtrain_full <- xgboost::xgb.DMatrix(data = X_train_h, label = y_train)
+    dval_outer  <- xgboost::xgb.DMatrix(data = X_val)
 
     xgb_mod <- xgboost::xgb.train(
-      params = list(
-        objective        = "reg:squarederror",
-        max_depth        = 4,
-        eta              = 0.05,
-        subsample        = 0.8,
-        colsample_bytree = 0.8,
-        min_child_weight = 5
-      ),
-      data    = dtrain,
-      nrounds = 300,
+      params  = xgb_params,
+      data    = dtrain_full,
+      nrounds = best_nrounds,
       verbose = 0
     )
 
-    xgb_preds[, h] <- predict(xgb_mod, dval)
+    xgb_preds[, h] <- predict(xgb_mod, dval_outer)
 
     # Store model from final fold
     if (f == length(df_folds)) final_xgb_models[[h]] <- xgb_mod
@@ -382,7 +452,7 @@ for (f in seq_along(df_folds)) {
 # Summarise main models across folds
 model_fold_tbl <- dplyr::bind_rows(model_fold_results)
 
-model_summary <- tibble::tibble(
+model_summary_tbl <- tibble::tibble(
   model    = c("random_forest", "xgboost"),
   mse_1_5  = c(
     mean(model_fold_tbl$rf_mse_1_5,  na.rm = TRUE),
@@ -403,12 +473,12 @@ model_summary <- tibble::tibble(
 )
 
 message("\n=== Model summary ===")
-print(model_summary)
+print(model_summary_tbl)
 
 saveRDS(
   list(
     fold_results  = model_fold_tbl,
-    summary       = model_summary,
+    summary       = model_summary_tbl,
     final_rf      = final_rf_models,
     final_xgb     = final_xgb_models,
     final_medians = final_medians,
@@ -424,7 +494,7 @@ saveRDS(
 # This is the primary output — tells you whether RF/XGBoost beat the baselines.
 # =============================================================================
 
-comparison_table <- dplyr::bind_rows(baseline_summary, model_summary) %>%
+comparison_table <- dplyr::bind_rows(baseline_summary, model_summary_tbl) %>%
   arrange(mse_1_5)
 
 message("\n=== Full comparison table (sorted by MSE 1-5) ===")

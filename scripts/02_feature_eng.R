@@ -287,7 +287,8 @@ build_features <- function(
   # GROUP 3: Acute DTA pressure — total delayed transfers (BRI + NBT)
   df$total_DTA_acute <- safe_rowsum(df, c(
     "No. of DTAs -- BRI",
-    "No. of DTAs -- NBT"
+    "No. of DTAs -- NBT",
+    "No. of DTAs -- WGH"
   ))
 
   # GROUP 4: Sustained ED pressure — rolling 3-day mean of ED >12hr at BRI
@@ -580,7 +581,13 @@ core_predictors <- c(
 
   # --- Emergency demand ---
   # Waiting calls: unmet 999 demand (distinct from calls received/answered)
-  "Number of Waiting Calls on the 999 Call Stack -- BNSSG"
+  "Number of Waiting Calls on the 999 Call Stack -- BNSSG",
+
+  # --- Upstream demand: IUC/111 service ---
+  "(Severnside) Calls Received -- SevernSide",
+
+  # --- Bed occupancy: available capacity dimension ---
+  "G&A Bed occupancy -- BRI"
 )
 
 # Verify all core predictors exist
