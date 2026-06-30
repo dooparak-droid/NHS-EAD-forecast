@@ -1,0 +1,293 @@
+feature,correlation
+NBT P2 NCtR Patients -- Sirona,0.563898813611174
+NBT P1 NCtR Patients -- Sirona,0.532574152770426
+"DtA P2 UNBOOKED Waiting for capacity, medically fit and ready to leave acute -- Sirona",0.505229565068837
+"DtA P2 TOTAL BOOKED AND UN-BOOKED Waiting for capacity, medically fit and ready to leave ACUTE -- Sirona",0.502761234826275
+% of beds occupied by patients with NCtR -- WGH,0.496004248975738
+NBT P1 NCtR Beddays -- Sirona,0.493728344800865
+Number of Waiting Calls on the 999 Call Stack -- BNSSG,0.461863608639685
+NBT P2 NCtR Beddays -- Sirona,0.458262871440757
+No. of DTAs -- BRI,0.446465945203127
+"DtA P3 BOOKED AND UN-BOOKED Waiting for capacity, medically fit and ready to leave ACUTE -- Sirona",0.434950396536109
+% of beds occupied by patients with NCtR -- BRI,0.430529983131675
+% of patients spending >12 hours in ED -- BRI,0.429705405321895
+DtA P3 TOTAL (BOOKED AND UNBOOKED) Waiting for capacity and medically fit and in any setting (acute and transitional bed) -- Sirona,0.428173823945636
+"DtA P3 UNBOOKED Waiting for capacity, medically fit and ready to leave acute -- Sirona",0.424376997426713
+Number of Medical Outliers -- BRI,0.424125312064202
+% of patients spending >12 hours in ED -- WGH,0.413175389994924
+% of open beds that are escalation beds -- WGH,0.404999855399186
+No. of DTAs -- NBT,0.404552593450737
+Cohorting & Reverse Queue -- BRI,0.402086356903366
+(Severnside) Calls Received -- SevernSide,0.398568962008615
+(Severnside) Calls Answered -- SevernSide,0.390725724147593
+Total Breaches Since Midnight -- BRI,0.390066907227953
+Number of Active Calls on the 999 Call Stack -- BNSSG,0.389399287879364
+Number of Outliers (excluding paediatrics) at 1000 -- BRI,0.388387860221385
+G&A Bed occupancy -- BRI,0.387097671530401
+Cohorting & Reverse Queue -- NBT,0.385609054634978
+New Arrivals in Last Hour -- BRI (Children's),0.382288597058648
+% of open beds that are escalation beds -- BRI,0.382160983721017
+No. of DTAs -- BRI (Children's),0.380893961753261
+Calls Offered in Last 15 mins -- SevernSide,0.378631866695299
+Calls Offered Since Midnight that Received -- SevernSide,0.375317018101217
+(Severnside) Referred to 999 - C2 Ambulances -- SevernSide,0.374851595135975
+NBT P3 NCtR Beddays -- Sirona,0.374574868684224
+A&E attends - paediatrics -- BRI,0.374569095473461
+IUC Advice Longest Wait (1hr Call Back) -- SevernSide,0.374343502141915
+IUC Advice Longest Wait (6hr Call Back) -- SevernSide,0.3742444512128
+Total Breaches Since Midnight -- BRI (Children's),0.372262918424197
+Escalation beds open -- BRI,0.372087367691774
+No. of DTAs -- WGH,0.370789696467101
+Number of Admissions -- BRI,0.363031326441285
+(Severnside) CAS Referred to ED -- SevernSide,0.36216593302166
+IUC Advice Longest Wait (2hr Call Back) -- SevernSide,0.362145976085171
+(Severnside) Calls Triaged -- SevernSide,0.358287894639384
+Number of Cases on IUC CAS Queue -- SevernSide,0.353212094475337
+Patients in A&E -- BRI (Children's),0.351630885260901
+Clinical Escalation Level (BrisDoc) -- SevernSide,0.351306537304488
+(SWASFT) Number of NHS 111 Incidents -- SWASFT,0.350625097158182
+"DtA P1 BOOKED AND UN-BOOKED Waiting for capacity, medically fit and ready to leave ACUTE -- Sirona",0.346576357141471
+(Severnside) HCP Calls Answered -- SevernSide,0.345798439598353
+Category 3 - BNSSG 90th Response (Last Hour) -- BNSSG,0.342928972365276
+Patients in A&E -- BRI,0.341896973695241
+"DtA P1 TOTAL (BOOKED AND UNBOOKED) Waiting for capacity and medically fit, and in any setting (acute and non-acute) -- Sirona",0.341159750126462
+Resuscitation Capacity -- NBT,0.339484237728812
+Number of Admissions -- WGH,0.339312870438423
+Number of Treatment Centre Appointments -- SevernSide,0.339160118902131
+Escalation beds open -- WGH,0.338208688524372
+Deficit of Discharges at 1100 - With Definite Discharges Known -- BRI,0.338107844283125
+Ambulance Handovers 60 mins (Last Hour) -- NBT,0.337012537718244
+(Severnside) Referred to ED -- SevernSide,0.3361119081865
+Majors and resuscitation occupancy (adult) -- WGH,0.336109056375888
+A&E Discharges in Last Hour -- BRI (Children's),0.335566721456795
+Number of Discharges -- BRI,0.33328898464962
+"DtA P1 BOOKED Waiting for capacity, medically fit and ready to leave ACUTE -- Sirona",0.3311176609824
+DtA P1 slots booked -- Sirona,0.330065347761976
+Category 3 - BNSSG Mean Response (Since Midnight) -- BNSSG,0.326506585665809
+"G&A beds, core stock open -- NBT",0.32479169187655
+Number of Home Visits -- SevernSide,0.323867862159475
+(Severnside) Referred to 999 - C3 Ambulances -- SevernSide,0.322265058905486
+Majors and resuscitation occupancy (adult) -- NBT,0.317633225665351
+Number of Admissions -- NBT,0.317479898211643
+NBT P3 NCtR Patients -- Sirona,0.316238049996535
+Aggregated NHSE OPEL Score -- NBT,0.316181538319457
+Ambulance Handovers 60mins (Since Midnight) -- NBT,0.315317504582302
+Critical Care beds - Paediatric intensive care beds occupied -- BRI,0.314906511698024
+Number of Discharges -- WGH,0.31453964305395
+Patients in A&E -- NBT,0.312228446201456
+G&A Bed occupancy -- NBT,0.305621238395297
+Automated OPEL -- NBT,0.305524290859443
+Median time to treatment since midnight -- BRI,0.304357180749668
+Ambulance Queue -- NBT,0.303100702267464
+% of patients spending >12 hours in ED -- NBT,0.30243085391507
+BRI P0 Discharges -- Sirona,0.302343899921658
+Category 2 - BNSSG 90th Response (Last Hour) -- BNSSG,0.302188962145651
+Majors and resuscitation occupancy (adult) -- BRI,0.301115588345593
+Total Breaches Since Midnight -- WGH,0.300745103909319
+ED all-type 4-hour performance -- NBT,0.300326446469748
+Aggregated NHSE OPEL Score -- BRI,0.30019619833381
+DtA P1 Referrals Received -- Sirona,0.299838149100133
+Ambulance Handovers 30 mins (Last Hour) -- NBT,0.291585958234149
+No. of DTAs (> 8hrs) -- NBT,0.291264474210363
+OPEL -- NBT,0.289861011248143
+Escalation beds open -- NBT,0.289343547551269
+WGH P0 Discharges -- Sirona,0.289200778826825
+Referrals Received Yesterday -- NHS @ Home,0.288115581244797
+Calls Answered Since Midnight that Received -- SevernSide,0.285408409932665
+Calls Answered in Last 15 mins -- SevernSide,0.285292190327162
+Ambulance Handovers 60 mins (Last Hour) -- BRI,0.284699349774374
+% of beds occupied by patients with NCtR -- NBT,0.284275681880365
+DtA P1 Slots Booked -- Sirona,0.284171583860643
+Patients in A&E -- WGH,0.283514004792565
+Number of Discharges -- NBT,0.281980070388568
+Handover to Clear 15mins (Since Midnight) -- NBT,0.280906889020414
+Number of empty beds on assessment units 8am (today) -- BRI,0.280775324596723
+Deficit of Discharges at 1100 - With Definite and Potential Discharges Identified -- BRI,0.280609046060513
+Ambulance Handovers 15mins (Last Hour) -- BRI,0.277184715823364
+Handover Time Lost Since Midnight (hh:mm) -- NBT,0.277042567530596
+DtA P3 beds occupied -- Sirona,0.272682379041369
+Critical Care beds - Neonatal intensive care cots occupied -- BRI,0.271796045499042
+Ambulance Handovers 30 mins (Last Hour) -- BRI,0.270576292101475
+OPEL -- BRI,0.270285845891768
+Proportion of Calls Since Midnight that Received a Hear Treat -- BNSSG,0.268169909424519
+Average Time to Assessment -- BRI,0.266620896284036
+Ambulance Handovers 30mins (Since Midnight) -- NBT,0.266531378272141
+NBT P0 Discharges -- Sirona,0.264730777522589
+OPEL -- WGH,0.264721769599783
+Sirona Woodspring Locality % Staffing Reduction -- Sirona,0.264395459262603
+Beds occupied by long-stay patients (21+ days) -- NBT,0.261515511513191
+Automated OPEL -- WGH,0.260436964365343
+WGH Complex Discharges -- Sirona,0.257677264306863
+IUC Advice Longest Wait (HCP Call Back) -- SevernSide,0.254738856352548
+Average Time to Assessment -- BRI (Children's),0.245336893058456
+Ambulance Handovers 60mins (Since Midnight) -- BRI,0.245220006646174
+Number of empty beds on assessment units 8am (today) - Surgery -- BRI,0.24227494827824
+Average Time to Triage -- WGH,0.241989204251407
+Ambulances En Route to Hospitals -- NBT,0.241696436301913
+Proportion of Calls Since Midnight that Received a See Convey -- BNSSG,0.241371556933844
+Median time to treatment since midnight -- NBT,0.238836662534091
+(SWASFT) Number of HCP Incidents -- SWASFT,0.238444197774873
+BRI Complex Discharges -- Sirona,0.238219974973213
+Ambulances Conveyed to Hospital (Last Hour) -- BRI (Children's),0.237878737366019
+NBT NCtR Patients -- Sirona,0.237105333227967
+Patients Admitted to DtA P2 - YESTERDAY'S DATA -- Sirona,0.236014103935238
+Ambulance Queue -- WGH,0.235836250446437
+Closed TOC Docs to all pathways -- Sirona,0.235005886856972
+Median time to treatment since midnight -- WGH,0.234926126808401
+DtA P2 Referrals Received -- Sirona,0.234868562301302
+Handover Time Lost Since Midnight (hh:mm) -- BRI,0.23319165323282
+Handover to Clear 15mins (Since Midnight) -- BRI,0.23012239636583
+Automated OPEL -- BRI,0.229719556950562
+Number of empty beds on assessment units 8am (today) - Medicine -- BRI,0.227948389356315
+Minors patient count -- BRI (Children's),0.227267236810216
+Category 2 - BNSSG Mean Response (Since Midnight) -- BNSSG,0.226188733817647
+Ambulances En Route to Hospital -- NBT,0.224108504205322
+Ambulance Handovers 30mins (Since Midnight) -- BRI,0.224043023695105
+4hr Breach Performance -- BRI,0.223164754904047
+Beds occupied by long-stay patients (21+ days) -- BRI,0.221227691466131
+Sirona South Bristol Locality % Staffing Reduction -- Sirona,0.220996354484953
+Critical Care beds - Adult critical care beds occupied -- BRI,0.220003659093577
+DtA P2 Beds Occupied -- Sirona,0.214834899692473
+OPEL -- SWAST,0.214092844124246
+Capacity (Available Slots Today) -- NHS @ Home,0.213183630550944
+Total Breaches Since Midnight -- NBT,0.212631783539233
+NBT NCtR >= 65 years old -- Sirona,0.207373113132553
+DtA P2 referrals received -- Sirona,0.205752699314349
+DtA Community P2 Bed Occupied -- Sirona,0.204964294345809
+A&E Discharges in Last Hour -- WGH,0.204300324657473
+Average Speed to Answer Since Midnight that Received -- SevernSide,0.203546179938881
+Average Speed to Answer in Last 15 mins -- SevernSide,0.202281508432569
+Patients Admitted to DtA P3 - YESTERDAY'S DATA -- Sirona,0.201424893268868
+Handover to Clear 15mins (Last Hour) -- NBT,0.198632771411006
+No of referrals received for DtA P3 -- Sirona,0.197702538766358
+Proportion of Calls Since Midnight that Received a See Treat -- BNSSG,0.194842405609898
+"Of neonatal critical care beds occupied, how many are level 3? -- NBT",0.194048301720432
+(Severnside) Calls Answered Within 60 Seconds -- SevernSide,0.193680864050719
+Ambulance Handovers 15mins (Since Midnight) -- BRI,0.192833912889205
+4hr Breach Performance -- BRI (Children's),0.192483091965819
+Resuscitation Capacity at 1000 -- BRI,0.192478509500305
+Aggregated NHSE OPEL Score -- WGH,0.192137625350434
+Calls Abandoned After Threshold in Last 15 mins -- SevernSide,0.18800016420582
+New Arrivals in Last Hour -- NBT,0.18768681580229
+Sirona BNSSG % Staffing Reduction -- Sirona,0.187603725092574
+ED all-type 4-hour performance -- WGH,0.187166891737415
+Sirona South Glos Locality % Staffing Reduction -- Sirona,0.184496113485471
+Number of Surgical Outliers -- BRI,0.184060172537331
+New Arrivals in Last Hour -- BRI,0.183838664337543
+Calls Abandoned After Threshold Since Midnight that Received -- SevernSide,0.183752796310587
+Ambulances En Route to Hospitals -- BRI,0.182516073379892
+Handover to Clear 15mins (Last Hour) -- WGH,0.180119938494113
+Ambulances Conveyed to Hospital (Since Midnight) -- BRI (Children's),0.180003848245421
+Average Time to Assessment -- WGH,0.178825210409699
+Cohorting & Reverse Queue -- WGH,0.178002764542613
+Ambulance Handovers 60 mins (Last Hour) -- WGH,0.177672495570606
+Ambulances En Route to Hospitals -- BRI (Children's),0.175485869436817
+ED all-type 4-hour performance -- BRI,0.175335657262046
+Answered in 60 seconds Since Midnight that Received (%) -- SevernSide,0.174165885695534
+OPEL -- BNSSG Adult Health Community Services,0.173982713250783
+Longest Wait Since Midnight that Received -- SevernSide,0.173198701526291
+A&E Discharges in Last Hour -- BRI,0.17095180569119
+No. of DTAs (> 8hrs) -- WGH,0.16917881087058
+Ambulances En Route to Hospital -- BRI (Children's),0.167097682003376
+Calls Abandoned After Threshold in Last 15 mins (%) -- SevernSide,0.166185478066355
+Average Time to Triage -- BRI,0.165533245566221
+Handover to Clear 30mins (Last Hour) -- NBT,0.165042948521299
+Average Time to Triage -- BRI (Children's),0.162501926368423
+Handover to Clear 15mins (Since Midnight) -- BRI (Children's),0.162333526701094
+Ambulance Handovers 60mins (Since Midnight) -- WGH,0.161891890840932
+Calls Abandoned Before Threshold in Last 15 mins -- SevernSide,0.161607644753587
+Ambulances En Route to Hospital -- BRI,0.160909336049312
+Longest Wait in Last 15 mins -- SevernSide,0.160389384136779
+Handover to Clear 30mins (Last Hour) -- BRI,0.159950112460672
+Handover to Clear 15mins (Last Hour) -- BRI,0.158686062822013
+Ambulance Handovers 15mins (Last Hour) -- NBT,0.158431595582654
+Delayed TOC Docs to all Pathways -- Sirona,0.158215725406889
+Ambulance Handovers 15mins (Last Hour) -- BRI (Children's),0.157969964035331
+Ambulances Conveyed to Hospital (Last Hour) -- BRI,0.157682449355
+A&E Discharges in Last Hour -- NBT,0.157645133576789
+A&E attends - paediatrics -- NBT,0.156907631247836
+Resuscitation Capacity -- BRI,0.156663894335929
+OPEL -- BNSSG,0.15579669377862
+Calls Abandoned After Threshold Since Midnight that Received (%) -- SevernSide,0.15499071038802
+New Arrivals in Last Hour -- WGH,0.154452182591736
+Majors patient count -- NBT,0.152662769590427
+Average Time to Assessment -- NBT,0.150484985614667
+Calls Abandoned Before Threshold Since Midnight that Received -- SevernSide,0.149321007231193
+(Severnside) Referred to 999 - C4 Ambulances -- SevernSide,0.149084588730953
+Handover Time Lost Since Midnight (hh:mm) -- WGH,0.147432194749962
+Answered in 60 seconds in Last 15 mins (%) -- SevernSide,0.147285762738069
+Handover to Clear 15mins (Last Hour) -- BRI (Children's),0.143817453403215
+Category 1 - BNSSG 90th Response (Last Hour) -- BNSSG,0.1433179493662
+Category 4 - BNSSG Mean Response (Since Midnight) -- BNSSG,0.140695705861838
+Number of GP expected diverts to ED -- BRI,0.140117136498131
+Number of Cardiac Outliers -- BRI,0.137774300988951
+Handover to Clear 30mins (Since Midnight) -- NBT,0.135865797711148
+Handover to Clear 15mins (Since Midnight) -- WGH,0.135405288539933
+Ambulances Conveyed to Hospital (Since Midnight) -- BRI,0.132662189537469
+4hr Breach Performance -- NBT,0.131776439248388
+Majors patient count -- BRI (Children's),0.131468932693298
+Answered in 60 seconds in Last 15 mins -- SevernSide,0.129409841946073
+No. of DTAs (> 8hrs) -- BRI,0.12814214288199
+Ambulances En Route to Hospitals -- BNSSG,0.127571388592692
+Minors patient count -- NBT,0.127134975265011
+Answered in 60 seconds Since Midnight that Received -- SevernSide,0.125477492136598
+Ambulances En Route to Hospital -- BNSSG,0.123645987031656
+Sirona N&W Bristol Locality % Staffing Reduction -- Sirona,0.122661000680234
+Handover to Clear 60mins (Since Midnight) -- BRI,0.122407958100254
+"DtA P1 BOOKED Waiting for capacity, medically fit and NOT in an acute -- Sirona",0.122136718794909
+Ambulance Handovers 30 mins (Last Hour) -- WGH,0.122076643187273
+OPEL -- SevernSide,0.122028538525139
+Average Handling Time in Last 15 mins -- SevernSide,0.121890801417829
+Sirona SASS % Staffing Reduction -- Sirona,0.121809614273825
+Sirona Weston & Worle Locality % Staffing Reduction -- Sirona,0.121576828721188
+Ambulance Handovers 15mins (Since Midnight) -- BRI (Children's),0.120018187107509
+Ambulance Queue -- BRI,0.118420463684878
+Handover to Clear 30mins (Last Hour) -- WGH,0.118379104499689
+Handover to Clear 30mins (Since Midnight) -- BRI,0.117533143070787
+Ambulances Conveyed to Hospital (Since Midnight) -- NBT,0.115871674219376
+"DtA P2 BOOKED Waiting for capacity, medically fit and ready to leave ACUTE -- Sirona",0.114763750523519
+Category 4 - BNSSG 90th Response (Last Hour) -- BNSSG,0.113553227231083
+"DtA P3 BOOKED Waiting for capacity, medically fit and ready to leave ACUTE -- Sirona",0.111435984612429
+Ambulances Conveyed to Hospital (Since Midnight) -- WGH,0.111399037035148
+"DtA P1 BOOKED AND UN-BOOKED Waiting for capacity, medically fit and NOT in an acute -- Sirona",0.110505428962978
+Mason Section 136 Beds Available (Capacity 4) -- AWP,0.107364740286191
+Sirona ICE Bristol Locality % Staffing Reduction -- Sirona,0.106541876871925
+ED all-type attendance variation -- WGH,0.106437588054285
+Ambulances Conveyed to Hospital (Last Hour) -- NBT,0.102326401763939
+ED all-type attendance variation -- BRI,0.100255339112937
+Critical Care beds - Adult critical care beds occupied -- WGH,0.0998427322954594
+Ambulance Handovers 30mins (Since Midnight) -- WGH,0.0991838925360795
+Adult critical care beds occupied -- NBT,0.0968989992012547
+Ambulances En Route to Hospitals -- WGH,0.0962632730890028
+"DtA P1 UNBOOKED Waiting for capacity, medically fit and ready to leave acute -- Sirona",0.0961054943378948
+G&A Bed occupancy -- WGH,0.0929552202075334
+DtA P3 Beds Occupied -- Sirona,0.0924310930357826
+Handover Time Lost Since Midnight (hh:mm) -- BRI (Children's),0.0901149542344284
+Handover to Clear 60mins (Since Midnight) -- BRI (Children's),0.08918015459053
+Handover to Clear 30mins (Since Midnight) -- WGH,0.0876714576615492
+Resuscitation Capacity -- BRI (Children's),0.0867994935685181
+Resuscitation Capacity -- WGH,0.0867994935685181
+Ambulances En Route to Hospital -- WGH,0.08657583550605
+NBT Complex Discharges -- Sirona,0.084229461995158
+Handover to Clear 30mins (Since Midnight) -- BRI (Children's),0.0806379257449388
+Ambulance Handovers 15mins (Last Hour) -- WGH,0.0779999826240319
+Average Handling Time Since Midnight that Received -- SevernSide,0.0770234066893639
+Handover to Clear 30mins (Last Hour) -- BRI (Children's),0.0760830724517919
+Ambulances Conveyed to Hospital (Last Hour) -- WGH,0.0759816794269882
+4hr Breach Performance -- WGH,0.0754635497741526
+Ambulance Handovers 60 mins (Last Hour) -- BRI (Children's),0.0747066915232237
+Ambulance Handovers 15mins (Since Midnight) -- NBT,0.067590308160435
+NBT NCtR Beddays -- Sirona,0.0659950316348264
+Category 1 - BNSSG Mean Response (Since Midnight) -- BNSSG,0.0655022540920339
+Ambulance Handovers 60mins (Since Midnight) -- BRI (Children's),0.0620089428266739
+Handover to Clear 60mins (Since Midnight) -- WGH,0.0607830179207695
+Ambulance Handovers 30mins (Since Midnight) -- BRI (Children's),0.0601456402686874
+DtA SBRU P2 stroke beds occupied -- Sirona,0.0563048072346356
+Average Time to Triage -- NBT,0.0530293993126936
+Ambulance Handovers 15mins (Since Midnight) -- WGH,0.0515574432425135
+Ambulance Handovers 30 mins (Last Hour) -- BRI (Children's),0.0512281075756664
+DtA SBRU P2 rehabilitation beds occupied -- Sirona,0.0482296001847136
+(Severnside) Referred to 999 - C1 Ambulances -- SevernSide,0.0480729316201118
+Number of critical care beds available at 8am (today) -- BRI,0.0469187941781286
+Handover to Clear 60mins (Since Midnight) -- NBT,0.0436751910438371
+"DtA P1 UNBOOKED Waiting for capacity, medically fit and NOT in an acute -- Sirona",0.0220294711983852

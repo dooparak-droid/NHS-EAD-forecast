@@ -181,6 +181,8 @@ resid_df <- dplyr::bind_rows(residual_rows) %>%
   ) %>%
   filter(!is.na(actual))
 
+str(pred_matrix)
+
 message("Residual data constructed: ", nrow(resid_df), " rows")
 
 # =============================================================================
@@ -485,4 +487,37 @@ monthly_corrections %>%
     fill     = NULL
   ) +
   theme_minimal()
+
+# ============================================================
+# COMPARISON: MSE with vs without bias correction (out-of-fold)
+# ============================================================
+
+# Apply the same corrections to the out-of-fold residual data
+# resid_df already has rf_pred (uncorrected) and actual
+
+resid_corrected <- resid_df %>%
+  mutate(
+    target_dow   = as.character(wday(date, week_start = 1)),
+    origin_month = as.character(month(date - horizon)),  # approximate origin month
+    dow_corr     = dow_correction_vec[target_dow],
+    month_corr   = monthly_correction_vec[origin_month],
+    rf_pred_corrected = pmax(rf_pred + replace_na(dow_corr, 0) + replace_na(month_corr, 0), 0)
+  )
+
+# MSE comparison table by horizon band
+mse_comparison <- resid_corrected %>%
+  filter(!is.na(actual)) %>%
+  mutate(horizon_band = if_else(horizon <= 5, "Days 1-5", "Days 6-10")) %>%
+  group_by(horizon_band) %>%
+  summarise(
+    mse_uncorrected = mean((rf_pred           - actual)^2, na.rm = TRUE),
+    mse_corrected   = mean((rf_pred_corrected - actual)^2, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    improvement     = mse_uncorrected - mse_corrected,
+    improvement_pct = round(100 * improvement / mse_uncorrected, 1)
+  )
+
+print(mse_comparison)
 

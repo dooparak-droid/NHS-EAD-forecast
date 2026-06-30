@@ -100,7 +100,7 @@
 #   scripts/aggregation_map.R — aggregation rules for raw data
 #
 # OUTPUTS:
-#   submission/pred_matrix.csv   — 131 rows x 11 columns (forecast_id + 10 horizons)
+#   submission/pred_matrix.csv   — 173 rows x 11 columns (forecast_id + 10 horizons)
 #   submission/pred_matrix.rds   — same data as RDS for reproducibility
 # =============================================================================
 
@@ -216,14 +216,14 @@ X_dev <- as.matrix(df_dev[feat_cols])
 final_rf <- vector("list", 10)
 
 for (h in 1:10) {
-
+  
   target_col <- paste0("target_h", h)
-
+  
   # Rows where target is NA (last h rows of dataset) cannot be used for training
   complete  <- !is.na(df_dev[[target_col]])
   y_train   <- df_dev[[target_col]][complete]
   X_train_h <- X_dev[complete, , drop = FALSE]
-
+  
   final_rf[[h]] <- ranger::ranger(
     x             = X_train_h,
     y             = y_train,
@@ -232,7 +232,7 @@ for (h in 1:10) {
     min.node.size = rf_min_node_size,
     seed          = 42
   )
-
+  
   message("  Horizon ", h, ": trained on ", sum(complete), " rows")
 }
 
@@ -462,10 +462,10 @@ if (length(missing_cols) > 0) {
 # =============================================================================
 # SECTION 5: GENERATE ROLLING 10-DAY FORECASTS
 # =============================================================================
-# The competition requires 131 rolling forecast periods over the assessment
+# The competition requires 173 rolling forecast periods over the assessment
 # window (Oct 1 - Mar 31 = 182 days, minus 9 for the last incomplete window).
 #
-# For each period p = 1:131:
+# For each period p = 1:173:
 #   - Forecast origin D is the day BEFORE the 10-day window
 #   - Features for date D are extracted from df_assess
 #   - The 10 pre-fitted RF models predict D+1 through D+10
@@ -473,7 +473,7 @@ if (length(missing_cols) > 0) {
 # Period 1:   origin = Sep 30, predicts Oct 1-10
 # Period 2:   origin = Oct 1,  predicts Oct 2-11
 # ...
-# Period 131: origin = Mar 21, predicts Mar 22-31
+# Period 173: origin = Mar 21, predicts Mar 22-31
 #
 # The submission format matches the example: one row per period, columns
 # forecast_id and day_1 through day_10.
@@ -481,7 +481,7 @@ if (length(missing_cols) > 0) {
 
 message("\n=== Section 5: Generating rolling forecasts ===")
 
-# Define the 131 origin dates
+# Define the 173 origin dates
 # First origin: Sep 30 (predicts Oct 1-10)
 # Last origin:  Mar 21 (predicts Mar 22-31)
 first_origin <- as.Date("2025-09-30")
@@ -499,31 +499,31 @@ if (n_periods != 131) { # was 173
 # Only use columns in feat_cols to match what models were trained on
 avail_feat_cols <- base::intersect(feat_cols, names(df_assess))
 
-# Prediction storage: 131 rows x 10 columns
+# Prediction storage: 173 rows x 10 columns
 pred_matrix <- matrix(NA_real_, nrow = n_periods, ncol = 10)
 
 for (p in seq_len(n_periods)) {
-
+  
   origin <- origin_dates[p]
-
+  
   # Extract the feature row for this origin date
   row_idx <- which(df_assess$date == origin)
-
+  
   if (length(row_idx) == 0) {
     warning("No feature row found for origin date ", origin, " — skipping period ", p)
     next
   }
-
+  
   if (length(row_idx) > 1) {
     warning("Multiple rows for ", origin, " — using first.")
     row_idx <- row_idx[1]
   }
-
+  
   # Build feature vector as a data.frame (ranger expects data.frame for predict)
   X_origin <- as.data.frame(
     as.matrix(df_assess[row_idx, avail_feat_cols, drop = FALSE])
   )
-
+  
   # Predict each horizon using the corresponding RF model
   for (h in 1:10) {
     pred_matrix[p, h] <- predict(final_rf[[h]], data = X_origin)$predictions
@@ -550,9 +550,9 @@ message("  Predictions generated for ", sum(!is.na(pred_matrix[, 1])),
 # Loads both correction vectors and applies them to pred_matrix.
 #
 # pred_matrix layout (as built in Section 5):
-#   - 131 rows, one per forecast origin date
+#   - 173 rows, one per forecast origin date
 #   - 10 columns: day_1 through day_10
-#   - origin_dates: Date vector of length 131, aligned row-for-row
+#   - origin_dates: Date vector of length 173, aligned row-for-row
 #
 # APPLICATION ORDER
 # -----------------
@@ -589,11 +589,11 @@ pred_matrix_corrected <- pred_matrix   # work on a copy
 
 for (p in seq_len(nrow(pred_matrix_corrected))) {
   for (h in 1:10) {
-
+    
     target_date <- origin_dates[p] + h
     target_dow  <- as.character(wday(target_date, week_start = 1))  # "1"–"7"
     dow_corr    <- dow_correction_vec[target_dow]
-
+    
     if (!is.na(dow_corr)) {
       pred_matrix_corrected[p, h] <- pred_matrix_corrected[p, h] + dow_corr
     }
@@ -608,10 +608,10 @@ message("  DOW correction applied at target date for each horizon.")
 # --------------------------------------------------------------------------
 
 for (p in seq_len(nrow(pred_matrix_corrected))) {
-
+  
   origin_month   <- as.character(month(origin_dates[p]))
   monthly_corr   <- monthly_correction_vec[origin_month]
-
+  
   if (!is.na(monthly_corr)) {
     pred_matrix_corrected[p, ] <- pred_matrix_corrected[p, ] + monthly_corr
   }
@@ -646,7 +646,7 @@ message("  Mean shift by horizon (h1–h10):")
 print(round(dow_shift_check, 4))
 
 # --------------------------------------------------------------------------
-# Diagnostic plot: mean correction by day of week across all 131 periods
+# Diagnostic plot: mean correction by day of week across all 173 periods
 # --------------------------------------------------------------------------
 # For each of the 10 horizons, compute the mean shift (corrected - raw).
 # Then label each horizon with the day of week it most commonly lands on.
@@ -654,9 +654,9 @@ print(round(dow_shift_check, 4))
 # than midweek horizons — the key claim of the DOW correction.
 #
 # Note: a given horizon (e.g. h1) lands on different days of the week
-# across the 131 periods, so we take the mean shift per horizon. To show
+# across the 173 periods, so we take the mean shift per horizon. To show
 # the DOW pattern more directly, we also plot mean shift grouped by the
-# actual target DOW across all 131 × 10 = 1310 cells.
+# actual target DOW across all 173 × 10 = 1730 cells.
 # --------------------------------------------------------------------------
 
 
@@ -738,7 +738,7 @@ pred_matrix <- pred_matrix_corrected
 # Checks:
 #   1. No NA predictions
 #   2. All predictions >= 0 (post-clipping)
-#   3. Correct number of rows (131)
+#   3. Correct number of rows (173)
 #   4. Values in a plausible range (based on development outcome distribution)
 #
 # Output:
@@ -793,7 +793,7 @@ if (pred_max > dev_max * 2) {
 }
 
 # --- Build submission data frame ---
-# Format: forecast_id (1:131), day_1 through day_10
+# Format: forecast_id (1:173), day_1 through day_10
 pred_out <- as.data.frame(pred_matrix)
 colnames(pred_out) <- paste0("day_", 1:10)
 pred_out$forecast_id <- 1:n_periods
