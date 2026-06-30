@@ -216,14 +216,14 @@ X_dev <- as.matrix(df_dev[feat_cols])
 final_rf <- vector("list", 10)
 
 for (h in 1:10) {
-
+  
   target_col <- paste0("target_h", h)
-
+  
   # Rows where target is NA (last h rows of dataset) cannot be used for training
   complete  <- !is.na(df_dev[[target_col]])
   y_train   <- df_dev[[target_col]][complete]
   X_train_h <- X_dev[complete, , drop = FALSE]
-
+  
   final_rf[[h]] <- ranger::ranger(
     x             = X_train_h,
     y             = y_train,
@@ -232,7 +232,7 @@ for (h in 1:10) {
     min.node.size = rf_min_node_size,
     seed          = 42
   )
-
+  
   message("  Horizon ", h, ": trained on ", sum(complete), " rows")
 }
 
@@ -503,27 +503,27 @@ avail_feat_cols <- base::intersect(feat_cols, names(df_assess))
 pred_matrix <- matrix(NA_real_, nrow = n_periods, ncol = 10)
 
 for (p in seq_len(n_periods)) {
-
+  
   origin <- origin_dates[p]
-
+  
   # Extract the feature row for this origin date
   row_idx <- which(df_assess$date == origin)
-
+  
   if (length(row_idx) == 0) {
     warning("No feature row found for origin date ", origin, " — skipping period ", p)
     next
   }
-
+  
   if (length(row_idx) > 1) {
     warning("Multiple rows for ", origin, " — using first.")
     row_idx <- row_idx[1]
   }
-
+  
   # Build feature vector as a data.frame (ranger expects data.frame for predict)
   X_origin <- as.data.frame(
     as.matrix(df_assess[row_idx, avail_feat_cols, drop = FALSE])
   )
-
+  
   # Predict each horizon using the corresponding RF model
   for (h in 1:10) {
     pred_matrix[p, h] <- predict(final_rf[[h]], data = X_origin)$predictions
@@ -589,11 +589,11 @@ pred_matrix_corrected <- pred_matrix   # work on a copy
 
 for (p in seq_len(nrow(pred_matrix_corrected))) {
   for (h in 1:10) {
-
+    
     target_date <- origin_dates[p] + h
     target_dow  <- as.character(wday(target_date, week_start = 1))  # "1"–"7"
     dow_corr    <- dow_correction_vec[target_dow]
-
+    
     if (!is.na(dow_corr)) {
       pred_matrix_corrected[p, h] <- pred_matrix_corrected[p, h] + dow_corr
     }
@@ -608,10 +608,10 @@ message("  DOW correction applied at target date for each horizon.")
 # --------------------------------------------------------------------------
 
 for (p in seq_len(nrow(pred_matrix_corrected))) {
-
+  
   origin_month   <- as.character(month(origin_dates[p]))
   monthly_corr   <- monthly_correction_vec[origin_month]
-
+  
   if (!is.na(monthly_corr)) {
     pred_matrix_corrected[p, ] <- pred_matrix_corrected[p, ] + monthly_corr
   }

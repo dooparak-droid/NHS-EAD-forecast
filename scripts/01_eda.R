@@ -99,6 +99,8 @@ sum(modeling_data == -9999, na.rm = TRUE)  # verify: should be 0
 modeling_data <- modeling_data %>%
   filter(date <= as.Date("2025-09-30"))
 
+
+
 # ============================================================
 # STEP 2: SANITY CHECKS
 # ============================================================

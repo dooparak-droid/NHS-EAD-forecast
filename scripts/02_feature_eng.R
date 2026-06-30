@@ -347,8 +347,10 @@ build_features <- function(
   # They have no observable outcome history and cannot be used for training.
   # ---------------------------------------------------------------------------
 
+  View(df)
   n_before  <- nrow(df)
-  df        <- df %>% filter(!is.na(outcome_lag3))
+  first_valid <- min(df$date[!is.na(df$outcome_lag3)])
+  df <- df %>% filter(date >= first_valid)
   n_dropped <- n_before - nrow(df)
 
   if (n_dropped > 0) {
