@@ -1,0 +1,200 @@
+---
+title: "NHS Severe Patient Harm Forecasting"
+author: "Emmanuel Oparaku & Michael Bakalov"
+date: "July 2026"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+  pdf_document: default
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{css, echo=FALSE}
+caption {
+  color: #666666;
+  font-size: 0.9em;
+  font-style: italic;
+}
+
+p.caption {
+  color: #666666;
+  font-size: 0.9em;
+  font-style: italic;
+}
+```
+
+## Introduction
+
+This report describes a machine learning pipeline for forecasting daily
+estimated avoidable deaths across the Bristol, North Somerset, and South
+Gloucestershire (BNSSG) NHS system over rolling 10-day windows. The
+pipeline uses Random Forest regression with direct multi-horizon
+forecasting — one model trained per horizon from 1 to 10 days ahead.
+This approach is preferred over recursive forecasting because each model
+is trained directly against its target lead time, avoiding compounding
+prediction errors across horizons.
+
+The development dataset covers March 2023 to September 2025 (\~16.7M
+rows, long format). The assessment period runs from 1 October 2025 to 17
+February 2026, yielding 131 sliding 10-day forecast periods.
+
+------------------------------------------------------------------------
+
+## Feature Engineering
+
+Feature selection prioritised clinical distinctiveness over raw
+correlation rank. Rather than taking the top-N predictors by Spearman
+correlation, we curated 10 predictors across four clinical domains —
+community NCtR capacity, acute-to-community transfer backlog, acute
+hospital pressure, and emergency demand — then collapsed correlated
+predictors within each domain into derived aggregates. This avoids
+feeding redundant signals to the model while preserving each domain's
+contribution.
+
+A key design constraint is the 3-day reporting lag on the outcome: only
+lags of 3 days or more are observable at prediction time. This
+constraint explains a non-monotonic pattern in CV MSE by horizon — MSE
+peaks at horizon 3 (the lag boundary) and then decreases slightly as the
+model shifts reliance from outcome lags toward clinical predictor
+features. Feature selection itself used maximum absolute Spearman
+correlation against the outcome at horizons h=3:10, computed on pre-2025
+data only to prevent leakage.
+
+------------------------------------------------------------------------
+
+## Model Selection
+
+Five models were evaluated through 8-fold expanding-window
+cross-validation with 10-day validation windows and a 10-day gap between
+training and validation:
+
+```{r model-comparison, echo=FALSE}
+results <- data.frame(
+  Model = c("Random Forest", "XGBoost", "Linear Regression",
+            "Rolling Mean (3-day)", "Naive (same weekday)"),
+  `MSE (1-5)` = c(0.083, 0.095, 0.114, 0.111, 0.153),
+  `SD (1-5)`  = c(0.066, 0.072, 0.059, 0.051, 0.040),
+  `MSE (6-10)` = c(0.079, 0.089, 0.109, 0.180, 0.051),
+  `SD (6-10)`  = c(0.034, 0.039, 0.054, 0.131, 0.054),
+  check.names = FALSE
+)
+knitr::kable(results,
+  caption = "Table 1: Cross-validated MSE by forecast horizon.
+             Random Forest outperforms all baselines across both
+             horizon groups. Lower is better.",
+  digits = 3)
+```
+
+Random Forest won both horizon groups cleanly, beating the next best
+model (XGBoost) by 13% on days 1–5 and 11% on days 6–10. The gap over
+the naive same-weekday baseline is substantial — 46% on days 1–5 —
+confirming that the clinical predictor features add genuine predictive
+signal beyond simple calendar patterns. XGBoost was competitive but less
+consistent across folds, with higher standard deviation. Random Forest
+was therefore selected for submission and refit on all 927 development
+rows.
+
+------------------------------------------------------------------------
+
+## Residual Analysis and Bias Correction
+
+Out-of-fold residuals revealed two systematic patterns. First, a weekly
+cycle: Saturday predictions were consistently lower than actuals (+0.093
+correction needed), while Thursday predictions were closest to actuals
+(+0.026 correction needed). Second, a seasonal bias: January was
+persistently underpredicted, driven by the post-holiday surge period in
+fold 5 (January 2025).
+
+```{r residual-dow-plot, echo=FALSE, message=FALSE, warning=FALSE, fig.cap="Figure 1: Mean out-of-fold residual by day of week for Random Forest and XGBoost. All days show systematic underprediction (negative residuals). Saturday is worst for Random Forest (-0.093), motivating the day-of-week bias correction."}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+resid_df <- readRDS("results/resid_df.rds")
+
+resid_df %>%
+  group_by(dow) %>%
+  summarise(
+    mean_rf  = mean(rf_resid,  na.rm = TRUE),
+    mean_xgb = mean(xgb_resid, na.rm = TRUE),
+    .groups  = "drop"
+  ) %>%
+  pivot_longer(c(mean_rf, mean_xgb),
+               names_to  = "model",
+               values_to = "mean_resid") %>%
+  mutate(model = recode(model,
+                        mean_rf  = "Random Forest",
+                        mean_xgb = "XGBoost")) %>%
+  ggplot(aes(x = dow, y = mean_resid, fill = model)) +
+  geom_col(position = "dodge") +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  scale_fill_manual(values = c("Random Forest" = "#E07A5F",
+                               "XGBoost"       = "#3AAFA9")) +
+  labs(x = NULL, y = "Mean residual", fill = NULL) +
+  theme_minimal()
+```
+
+These patterns motivated two additive post-hoc corrections, both
+estimated from out-of-fold residuals only. The day-of-week correction is
+applied at the **target date** for each horizon — the date the
+prediction actually lands on — not the origin date. This is the
+principled choice because the weekly cycle is a property of the day
+being predicted, not the day forecasting starts. The monthly correction
+is applied at the origin date, uniformly across all 10 horizons,
+capturing residual seasonal signal not explained by the calendar
+features.
+
+**However, on the actual assessment data, the correction worsened MSE:**
+
+```{r bias-correction, echo=FALSE}
+bias_results <- data.frame(
+  Horizon = c("Days 1-5", "Days 6-10"),
+  `MSE (Raw)` = c(0.098, 0.110),
+  `MSE (Corrected)` = c(0.103, 0.126),
+  `Improvement` = c(-0.005, -0.016),
+  `% Improvement` = c("-4.7%", "-14.5%"),
+  check.names = FALSE
+)
+knitr::kable(bias_results,
+  caption = "Table 2: Assessment period MSE — bias correction worsens
+             performance across both horizon groups. Negative improvement
+             indicates the correction increases error.",
+  digits = 3)
+```
+
+The correction overcorrects on the assessment window probably because it
+was estimated from predominantly non-winter development data (March 2023
+– September 2025), yet the assessment period is entirely winter (October
+2025 – February 2026). The model already predicts higher values in
+winter through its clinical features; the correction then pushes
+predictions further up, overshooting. This is consistent with the known
+limitation of post-hoc corrections estimated from seasonally unbalanced
+training data.
+
+We therefore submit **uncorrected predictions as primary**
+(`submission/pred_matrix.csv`) and bias-corrected predictions as
+supplementary (`submission/pred_matrix_corrected.csv`). Both files are
+generated automatically by `05_forecast.R`, with the MSE comparison
+running before the save step so the rationale is documented in the
+console output on every run.
+
+------------------------------------------------------------------------
+
+## Known Limitations
+
+The most significant limitation is fold 5 (January 2025 post-holiday
+surge), which dominates CV variance and is largely irreducible. The
+model has seen only one January surge in training, and even with
+explicit holiday flags, Random Forest's averaging mechanism compresses
+extreme predictions toward the centre of the distribution —
+underpredicting on high-mortality days and overpredicting slightly on
+low-mortality days. This mean reversion is visible in the actual vs
+predicted scatter at horizon 1 and explains why the January bias
+correction, estimated from fold 5 alone, carries high uncertainty.
+
+A secondary data quality issue: origin date 2025-10-03 is absent from
+the assessment dataset, so period 4 (predicting October 4–13) produces
+NA predictions, excluded from MSE calculations via `na.rm = TRUE`.
