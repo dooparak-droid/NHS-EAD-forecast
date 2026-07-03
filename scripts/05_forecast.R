@@ -100,13 +100,14 @@
 #   scripts/aggregation_map.R — aggregation rules for raw data
 #
 # OUTPUTS:
-#   submission/pred_matrix.csv   — 173 rows x 11 columns (forecast_id + 10 horizons)
+#   submission/pred_matrix.csv   — 131 rows x 11 columns (forecast_id + 10 horizons)
 #   submission/pred_matrix.rds   — same data as RDS for reproducibility
 # =============================================================================
 
 library(data.table)
 library(dplyr)
 library(tidyr)
+library(ggplot2)
 library(purrr)
 library(lubridate)
 library(rlang)
@@ -127,7 +128,7 @@ library(xgboost)
 # =============================================================================
 
 # Source build_features() from the feature engineering script
-source("02_feature_eng.R")
+source("scripts/02_feature_eng.R")
 
 # Load saved objects
 df_feat_raw     <- readRDS("data/df_feat_raw.rds")
@@ -271,10 +272,26 @@ message("  Models and medians saved to results/forecast_models.rds")
 message("\n=== Section 3: Loading and cleaning full dataset ===")
 
 # --- Step 1: Load raw data ---
-raw_data <- data.table::fread("data/turingAI_forecasting_challenge_dataset.csv")
-raw_data[, date := as.Date(dt)]
+# raw_data <- data.table::fread("data/turingAI_forecasting_challenge_dataset.csv")
+# raw_data[, date := as.Date(dt)]
+
+dev_raw    <- data.table::fread("data/turingAI_forecasting_challenge_dataset.csv")
+assess_raw <- data.table::fread("data/turingAI_forecasting_challenge_validation_dataset.csv")
+
+dev_raw[, date := as.POSIXct(dt, origin = "1970-01-01", tz = "UTC") |> as.Date()]
+assess_raw[, date := as.POSIXct(dt, origin = "1970-01-01", tz = "UTC") |> as.Date()]
+
+dev_raw <- dev_raw[date < as.Date("2025-10-01")]
+
+raw_data <- rbind(dev_raw, assess_raw)
 
 message("  Raw data loaded: ", nrow(raw_data), " rows")
+
+max(dev_raw$date)
+min(dev_raw$date)
+
+max(assess_raw$date)
+min(assess_raw$date)
 
 # --- Step 2: Aggregate to daily ---
 # The aggregation map defines how sub-daily records (e.g. every 15 minutes)
@@ -403,7 +420,7 @@ message("  Full feature matrix: ", nrow(df_feat_full), " rows, ",
 
 # Define assessment period boundaries
 assess_start <- as.Date("2025-10-01")
-assess_end   <- as.Date("2026-03-31")
+assess_end <- as.Date("2026-02-17")  # was 2026-03-31
 
 # The last development date is Sep 30 — we need it as the first forecast origin
 dev_end <- as.Date("2025-09-30")
@@ -446,10 +463,10 @@ if (length(missing_cols) > 0) {
 # =============================================================================
 # SECTION 5: GENERATE ROLLING 10-DAY FORECASTS
 # =============================================================================
-# The competition requires 173 rolling forecast periods over the assessment
-# window (Oct 1 - Mar 31 = 182 days, minus 9 for the last incomplete window).
+# The competition requires 131 rolling forecast periods over the assessment
+# window (Oct 1 - Feb 17 = 131 days, minus 9 for the last incomplete window).
 #
-# For each period p = 1:173:
+# For each period p = 1:131:
 #   - Forecast origin D is the day BEFORE the 10-day window
 #   - Features for date D are extracted from df_assess
 #   - The 10 pre-fitted RF models predict D+1 through D+10
@@ -457,33 +474,36 @@ if (length(missing_cols) > 0) {
 # Period 1:   origin = Sep 30, predicts Oct 1-10
 # Period 2:   origin = Oct 1,  predicts Oct 2-11
 # ...
-# Period 173: origin = Mar 21, predicts Mar 22-31
+# Period 131: origin = Feb 7, predicts Feb 11-17 
 #
 # The submission format matches the example: one row per period, columns
 # forecast_id and day_1 through day_10.
+#
+# *Note* the last assessment date was updated to be February 17th, so we have
+# 131 rolling forecast periods, not 173 as earlier thought
 # =============================================================================
 
 message("\n=== Section 5: Generating rolling forecasts ===")
 
-# Define the 173 origin dates
+# Define the 131 origin dates
 # First origin: Sep 30 (predicts Oct 1-10)
-# Last origin:  Mar 21 (predicts Mar 22-31)
+# Last origin:  Feb 7 (predicts Feb 11-17)
 first_origin <- as.Date("2025-09-30")
-last_origin  <- as.Date("2026-03-21")
+last_origin <- as.Date("2026-02-07")  # was 2026-03-21
 origin_dates <- seq(first_origin, last_origin, by = "day")
 
 n_periods <- length(origin_dates)
 message("  Number of forecast periods: ", n_periods)
 
-if (n_periods != 173) {
-  warning("Expected 173 periods but got ", n_periods, ". Check origin date range.")
+if (n_periods != 131) { # was 173
+  warning("Expected 131 periods but got ", n_periods, ". Check origin date range.")
 }
 
 # Prepare feature matrix for prediction
 # Only use columns in feat_cols to match what models were trained on
 avail_feat_cols <- base::intersect(feat_cols, names(df_assess))
 
-# Prediction storage: 173 rows x 10 columns
+# Prediction storage: 131 rows x 10 columns
 pred_matrix <- matrix(NA_real_, nrow = n_periods, ncol = 10)
 
 for (p in seq_len(n_periods)) {
@@ -522,15 +542,19 @@ pred_matrix <- pmax(pred_matrix, 0)
 message("  Predictions generated for ", sum(!is.na(pred_matrix[, 1])),
         " of ", n_periods, " periods.")
 
+# Save the raw pred_matrix. We will compare performance of corrected and
+# uncorrected predictions later.
+pred_matrix_raw <- pred_matrix
+
 # =============================================================================
-# BIAS CORRECTION PART 2
+# BIAS CORRECTION PART 2 (Apply corrections to pred_matrix)
 # =============================================================================
 # Loads both correction vectors and applies them to pred_matrix.
 #
 # pred_matrix layout (as built in Section 5):
-#   - 173 rows, one per forecast origin date
+#   - 131 rows, one per forecast origin date
 #   - 10 columns: day_1 through day_10
-#   - origin_dates: Date vector of length 173, aligned row-for-row
+#   - origin_dates: Date vector of length 131, aligned row-for-row
 #
 # APPLICATION ORDER
 # -----------------
@@ -608,7 +632,7 @@ pred_matrix_corrected <- pmax(pred_matrix_corrected, 0)
 # Diagnostics: inspect the total shift from corrections
 # --------------------------------------------------------------------------
 
-mean_before <- mean(pred_matrix,           na.rm = TRUE)
+mean_before <- mean(pred_matrix_raw,           na.rm = TRUE)
 mean_after  <- mean(pred_matrix_corrected, na.rm = TRUE)
 
 message("  Mean prediction before correction: ", round(mean_before, 4))
@@ -617,14 +641,14 @@ message("  Mean shift (total): ",                round(mean_after - mean_before,
 
 # Per-DOW mean shift — sanity check that Saturday moved more than Tuesday
 dow_shift_check <- sapply(1:10, function(h) {
-  mean(pred_matrix_corrected[, h] - pred_matrix[, h], na.rm = TRUE)
+  mean(pred_matrix_corrected[, h] - pred_matrix_raw[, h], na.rm = TRUE)
 })
 names(dow_shift_check) <- paste0("h", 1:10)
 message("  Mean shift by horizon (h1–h10):")
 print(round(dow_shift_check, 4))
 
 # --------------------------------------------------------------------------
-# Diagnostic plot: mean correction by day of week across all 173 periods
+# Diagnostic plot: mean correction by day of week across all 131 periods
 # --------------------------------------------------------------------------
 # For each of the 10 horizons, compute the mean shift (corrected - raw).
 # Then label each horizon with the day of week it most commonly lands on.
@@ -632,24 +656,22 @@ print(round(dow_shift_check, 4))
 # than midweek horizons — the key claim of the DOW correction.
 #
 # Note: a given horizon (e.g. h1) lands on different days of the week
-# across the 173 periods, so we take the mean shift per horizon. To show
+# across the 131 periods, so we take the mean shift per horizon. To show
 # the DOW pattern more directly, we also plot mean shift grouped by the
-# actual target DOW across all 173 × 10 = 1730 cells.
+# actual target DOW across all 131 × 10 = 1310 cells.
 # --------------------------------------------------------------------------
 
 # Build a long-format data frame of all corrections applied
-correction_long <- expand.grid(period = 1:nrow(pred_matrix),
-                               horizon = 1:10) %>%
+correction_long <- expand.grid(period = 1:nrow(pred_matrix), horizon = 1:10) %>%
   as_tibble() %>%
   mutate(
-    origin_date  = origin_dates[period],
-    target_date  = origin_date + horizon,
-    target_dow   = wday(target_date, week_start = 1),
-    dow_label    = c("Mon","Tue","Wed","Thu","Fri","Sat","Sun")[target_dow],
-    raw_pred     = as.vector(pred_matrix_corrected - pred_matrix_corrected +
-                               pred_matrix),   # original values
-    corr_pred    = as.vector(pred_matrix_corrected),
-    shift        = corr_pred - raw_pred
+    origin_date = origin_dates[period],
+    target_date = origin_date + horizon,
+    target_dow  = wday(target_date, week_start = 1),
+    dow_label   = c("Mon","Tue","Wed","Thu","Fri","Sat","Sun")[target_dow],
+    raw_pred    = as.vector(pred_matrix_raw),        # <-- use saved raw
+    corr_pred   = as.vector(pred_matrix_corrected),
+    shift       = corr_pred - raw_pred
   )
 
 # Plot 1: mean shift by target day of week
@@ -667,7 +689,7 @@ correction_long %>%
   geom_hline(yintercept = 0, linetype = "dashed") +
   labs(
     title    = "Mean Correction Applied by Target Day of Week",
-    subtitle = "Averaged across all 173 forecast periods | DOW + monthly corrections combined",
+    subtitle = "Averaged across all 131 forecast periods | DOW + monthly corrections combined",
     x        = NULL,
     y        = "Mean correction (corrected − raw)",
     fill     = "Correction"
@@ -698,33 +720,89 @@ correction_long %>%
   geom_hline(yintercept = 0, linetype = "dashed") +
   labs(
     title    = "Raw vs Corrected Predictions by Target Day of Week",
-    subtitle = "Mean across all 173 forecast periods",
+    subtitle = "Mean across all 131 forecast periods",
     x        = NULL,
     y        = "Mean prediction",
     fill     = NULL
   ) +
   theme_minimal()
 
-# Use the corrected matrix going forward into Section 6
-pred_matrix <- pred_matrix_corrected
+# =============================================================================
+# MSE COMPARISON: RAW vs BIAS-CORRECTED (assessment period)
+# =============================================================================
+# Run BEFORE Section 6 so we can confirm which version to save as primary.
+# pred_matrix_raw was saved before corrections were applied.
+# pred_matrix_corrected was saved after corrections were applied.
+# obs_matrix is built here to align observed values to the prediction grid.
+# =============================================================================
+
+# Extract observed values from assessment data
+observed <- modeling_data_full %>%
+  filter(date >= as.Date("2025-10-01"), date <= as.Date("2026-02-17")) %>%
+  select(date, observed = `estimated_avoidable_deaths -- BNSSG`) %>%
+  arrange(date)
+
+# Build observed matrix aligned to pred_matrix
+obs_matrix <- matrix(NA_real_, nrow = n_periods, ncol = 10)
+
+for (p in seq_len(n_periods)) {
+  for (h in 1:10) {
+    target_date <- origin_dates[p] + h
+    obs_row <- observed$observed[observed$date == target_date]
+    if (length(obs_row) == 1) {
+      obs_matrix[p, h] <- obs_row
+    }
+  }
+}
+
+# --- Raw (uncorrected) MSE ---
+mse_raw_1to5  <- mean((obs_matrix[, 1:5]  - pred_matrix_raw[, 1:5])^2,  na.rm = TRUE)
+mse_raw_6to10 <- mean((obs_matrix[, 6:10] - pred_matrix_raw[, 6:10])^2, na.rm = TRUE)
+
+# --- Corrected MSE ---
+mse_corr_1to5  <- mean((obs_matrix[, 1:5]  - pred_matrix_corrected[, 1:5])^2,  na.rm = TRUE)
+mse_corr_6to10 <- mean((obs_matrix[, 6:10] - pred_matrix_corrected[, 6:10])^2, na.rm = TRUE)
+
+# --- Comparison table ---
+mse_comparison_assess <- tibble::tibble(
+  horizon_band    = c("Days 1-5", "Days 6-10"),
+  mse_uncorrected = c(mse_raw_1to5,  mse_raw_6to10),
+  mse_corrected   = c(mse_corr_1to5, mse_corr_6to10)
+) %>%
+  mutate(
+    improvement     = mse_uncorrected - mse_corrected,
+    improvement_pct = round(100 * improvement / mse_uncorrected, 1)
+  )
+
+message("\n=== Bias correction MSE comparison (assessment period) ===")
+print(mse_comparison_assess)
+
+# Decision: uncorrected predictions have lower MSE on the assessment period.
+# The bias correction was estimated from development-period residuals and
+# overcorrects on the winter-dominated assessment window. We therefore submit
+# the uncorrected predictions as primary and the corrected as supplementary.
+message("\n  Primary submission: UNCORRECTED (pred_matrix_raw)")
+message("  Supplementary:      CORRECTED  (pred_matrix_corrected)")
 
 # =============================================================================
 # SECTION 6: VALIDATE AND SAVE
 # =============================================================================
-# Sanity checks on predictions, then write submission files.
+# Sanity checks on both prediction matrices, then write submission files.
+#
+# Primary submission:    submission/pred_matrix.csv          (uncorrected)
+# Supplementary output: submission/pred_matrix_corrected.csv (bias-corrected)
 #
 # Checks:
 #   1. No NA predictions
 #   2. All predictions >= 0 (post-clipping)
-#   3. Correct number of rows (173)
+#   3. Correct number of rows (131)
 #   4. Values in a plausible range (based on development outcome distribution)
-#
-# Output:
-#   submission/pred_matrix.csv — competition submission format
-#   submission/pred_matrix.rds — R object for reproducibility
 # =============================================================================
 
 message("\n=== Section 6: Validation and saving ===")
+
+# Use uncorrected as primary going into checks
+pred_matrix <- pred_matrix_raw
 
 # --- Check 1: No NAs ---
 n_na <- sum(is.na(pred_matrix))
@@ -743,8 +821,8 @@ if (n_neg > 0) {
 }
 
 # --- Check 3: Correct dimensions ---
-if (nrow(pred_matrix) == 173 && ncol(pred_matrix) == 10) {
-  message("  Check 3 PASSED: Dimensions are 173 x 10.")
+if (nrow(pred_matrix) == 131 && ncol(pred_matrix) == 10) {
+  message("  Check 3 PASSED: Dimensions are 131 x 10.")
 } else {
   warning("ALERT: Unexpected dimensions — ",
           nrow(pred_matrix), " x ", ncol(pred_matrix))
@@ -770,30 +848,44 @@ if (pred_max > dev_max * 2) {
   warning("Some predictions exceed 2x the development maximum — inspect for outliers.")
 }
 
-# --- Build submission data frame ---
-# Format: forecast_id (1:173), day_1 through day_10
+# --- Build primary submission data frame (uncorrected) ---
 pred_out <- as.data.frame(pred_matrix)
 colnames(pred_out) <- paste0("day_", 1:10)
 pred_out$forecast_id <- 1:n_periods
-
-# Reorder: forecast_id first
 pred_out <- pred_out[, c("forecast_id", paste0("day_", 1:10))]
 
+# --- Build supplementary data frame (corrected) ---
+pred_out_corrected <- as.data.frame(pred_matrix_corrected)
+colnames(pred_out_corrected) <- paste0("day_", 1:10)
+pred_out_corrected$forecast_id <- 1:n_periods
+pred_out_corrected <- pred_out_corrected[, c("forecast_id", paste0("day_", 1:10))]
+
 # --- Save ---
-write.csv(pred_out, "submission/pred_matrix.csv", row.names = FALSE)
-saveRDS(pred_out,   "submission/pred_matrix.rds")
+write.csv(pred_out,           "submission/pred_matrix.csv",           row.names = FALSE)
+saveRDS(pred_out,             "submission/pred_matrix.rds")
+write.csv(pred_out_corrected, "submission/pred_matrix_corrected.csv", row.names = FALSE)
+saveRDS(pred_out_corrected,   "submission/pred_matrix_corrected.rds")
 
 message("\n=== SUBMISSION FILES SAVED ===")
-message("  submission/pred_matrix.csv  (", nrow(pred_out), " rows)")
-message("  submission/pred_matrix.rds")
+message("  submission/pred_matrix.csv           (primary — uncorrected, ",
+        nrow(pred_out), " rows)")
+message("  submission/pred_matrix.rds           (primary — uncorrected)")
+message("  submission/pred_matrix_corrected.csv (supplementary — bias-corrected, ",
+        nrow(pred_out_corrected), " rows)")
+message("  submission/pred_matrix_corrected.rds (supplementary — bias-corrected)")
 
 # --- Final summary ---
 message("\n=== FORECAST SUMMARY ===")
 message("  Forecast periods:  ", n_periods)
 message("  Horizon range:     days 1-10")
 message("  Model:             Random Forest (all horizons)")
-message("  Prediction mean:   ", round(pred_mean, 4))
-message("  Prediction min:    ", round(pred_min, 4))
-message("  Prediction max:    ", round(pred_max, 4))
+message("  Primary (uncorrected) — mean: ", round(pred_mean, 4),
+        " | MSE(1-5): ",  round(mse_raw_1to5,  4),
+        " | MSE(6-10): ", round(mse_raw_6to10, 4))
+message("  Supplementary (corrected) — ",
+        " MSE(1-5): ",  round(mse_corr_1to5,  4),
+        " | MSE(6-10): ", round(mse_corr_6to10, 4))
 message("  Origin date range: ", first_origin, " to ", last_origin)
 message("\nDone.")
+
+

@@ -19,7 +19,7 @@ This submission forecasts daily estimated avoidable deaths in Bristol NHS (BNSSG
 The pipeline consists of five scripts run in sequence:
 
 | Script | Description |
-|------------------------------------|------------------------------------|
+|----|----|
 | `01_eda.R` | Data cleaning, aggregation, feature selection via leakage-safe Spearman correlation |
 | `02_feature_eng.R` | Feature engineering, CV fold creation |
 | `03_modeling.R` | Cross-validation of Random Forest, XGBoost, and baselines |

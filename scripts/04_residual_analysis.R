@@ -319,14 +319,17 @@ resid_df %>%
 
 message("All residual plots generated.")
 
+# Save the plot object for future plot calls
+saveRDS(resid_df, "results/resid_df.rds")
+
 
 # =============================================================================
 # POST-HOC BIAS CORRECTION
 # =============================================================================
-# Part 1: Add this section to the END of 05_residual_analysis.R
+# Part 1: Add this section to the END of 04_residual_analysis.R
 #         Run after resid_df has been constructed (after Section 2)
 #
-# Part 2: Add the application block to 04_forecast.R after Section 5
+# Part 2: Add the application block to 05_forecast.R after Section 5
 #         (after pred_matrix is generated, before Section 6 validation)
 #
 # CORRECTION STRATEGY
@@ -338,7 +341,7 @@ message("All residual plots generated.")
 #      Each of the 10 horizon predictions lands on a specific day of week;
 #      the correction for that day is applied to that specific prediction.
 #      Rationale: the weekly cycle is a genuine structural pattern (plot 2
-#      from 05_residual_analysis.R shows Saturday systematically worse than
+#      from 04_residual_analysis.R shows Saturday systematically worse than
 #      midweek for RF). ~11 obs per DOW, spread across all seasons → reliable.
 #
 #   2. Monthly correction — SECONDARY
